@@ -34,7 +34,11 @@
 
             function start() {
                 const client = new tmi.Client({
-                    connection: { reconnect: true, secure: true },
+                    connection: { 
+                    reconnect: true, 
+                    secure: true,
+                    timeout: 30000 
+                    },
                     channels: ['tachinsan']
                 });
 
