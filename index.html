@@ -3,44 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <title>Twitch Reader</title>
-    <script src="https://unpkg.com/tmi.js@1.8.5/projects/tmijs/dist/tmi.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tmi.js/1.8.5/tmi.min.js"></script>
 </head>
 <body>
     <h1>Twitch 読み上げくん</h1>
-    <p>現在の状態: <span id="status" style="font-weight:bold; color:red;">準備中...</span></p>
-    <div id="log" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll; background:#f9f9f9;"></div>
+    <p>現在の状態: <span id="status" style="font-weight:bold; color:red;">接続待機中...</span></p>
+    <div id="log" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll;"></div>
 
     <script>
-        // ページが完全に読み込まれてから実行する
-        window.onload = function() {
-            const targetChannel = 'tachinsan'; 
-
-            try {
-                const client = new tmi.Client({
-                    connection: { reconnect: true, secure: true },
-                    channels: [ targetChannel ]
-                });
-
-                client.connect().then(() => {
-                    document.getElementById('status').innerText = '接続成功！ (tachinsan 待機中)';
-                    document.getElementById('status').style.color = 'green';
-                }).catch(err => {
-                    document.getElementById('status').innerText = '接続失敗: ' + err;
-                });
-
-                client.on('message', (channel, tags, message, self) => {
-                    const log = document.getElementById('log');
-                    log.innerHTML += `<p><strong>${tags['display-name'] || tags.username}:</strong> ${message}</p>`;
-                    log.scrollTop = log.scrollHeight;
-
-                    const uttr = new SpeechSynthesisUtterance(message);
-                    uttr.lang = 'ja-JP';
-                    window.speechSynthesis.speak(uttr);
-                });
-            } catch (e) {
-                document.getElementById('status').innerText = 'エラー発生: ' + e.message;
+        // 道具が読み込まれるのを待ってから開始する
+        function startApp() {
+            if (typeof tmi === 'undefined') {
+                document.getElementById('status').innerText = 'エラー：通信ライブラリが読み込めませんでした。再読み込みしてください。';
+                return;
             }
-        };
+
+            const targetChannel = 'tachinsan'; 
+            const client = new tmi.Client({
+                connection: { reconnect: true, secure: true },
+                channels: [ targetChannel ]
+            });
+
+            client.connect().then(() => {
+                document.getElementById('status').innerText = '接続成功！ (tachinsan 待機中)';
+                document.getElementById('status').style.color = 'green';
+            }).catch(err => {
+                document.getElementById('status').innerText = '接続失敗: ' + err;
+            });
+
+            client.on('message', (channel, tags, message, self) => {
+                const log = document.getElementById('log');
+                log.innerHTML += `<p><strong>${tags['display-name'] || tags.username}:</strong> ${message}</p>`;
+                log.scrollTop = log.scrollHeight;
+
+                const uttr = new SpeechSynthesisUtterance(message);
+                uttr.lang = 'ja-JP';
+                window.speechSynthesis.speak(uttr);
+            });
+        }
+
+        // ページ読み込み完了時に実行
+        window.onload = startApp;
     </script>
 </body>
 </html>
