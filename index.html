@@ -3,65 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitch Reader Ultimate</title>
-    <script>
-    /* tmi.js v1.8.5 (embedded) */
-    (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.tmi=f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){},{}],2:[function(require,module,exports){"use strict";var client=require("./client");module.exports={client:client,Client:client};},{"./client":3}],3:[function(require,module,exports){"use strict";/* 内部コード省略（動作に必要な最小構成を組み込み） */ }])});
-    </script>
+    <title>Twitch Reader</title>
+    <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
 </head>
-<body style="font-family: sans-serif; background-color: #f0f0f0; padding: 20px;">
-    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-        <h1 style="font-size: 18px; margin-top: 0;">Twitch 読み上げくん</h1>
-        <p>状態: <span id="status" style="font-weight:bold; color:red;">接続中...</span></p>
-        <div id="log" style="border:1px solid #ddd; padding:10px; height:300px; overflow-y:scroll; background:#fafafa; font-size: 14px;"></div>
-    </div>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1>Twitch 読み上げ</h1>
+    <p>状態: <span id="status" style="font-weight:bold; color:red;">起動中...</span></p>
+    <div id="log" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll;"></div>
 
     <script>
-        // ページを読み込んだらすぐに実行
-        (function() {
+        function start() {
             const statusEl = document.getElementById('status');
             
-            // 万が一の読み込みチェック
             if (typeof tmi === 'undefined') {
-                // ここでエラーが出る場合は、外部CDNから強制読み込み
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js';
-                script.onload = start;
-                document.head.appendChild(script);
-            } else {
-                start();
+                statusEl.innerText = 'ライブラリ読込中...（数秒待って更新してください）';
+                return;
             }
 
-            function start() {
-                const client = new tmi.Client({
-                    connection: { 
-                    reconnect: true, 
-                    secure: true,
-                    timeout: 30000 
-                    },
-                    channels: ['tachinsan']
-                });
+            const client = new tmi.Client({
+                connection: { reconnect: true, secure: true },
+                channels: ['tachinsan']
+            });
 
-                client.connect().then(() => {
-                    statusEl.innerText = '接続成功！(tachinsan)';
-                    statusEl.style.color = 'green';
-                }).catch(err => {
-                    statusEl.innerText = '接続失敗: ' + err;
-                });
+            client.connect().then(() => {
+                statusEl.innerText = '接続成功！ (tachinsan)';
+                statusEl.style.color = 'green';
+            }).catch(err => {
+                statusEl.innerText = '接続失敗: ' + err;
+            });
 
-                client.on('message', (channel, tags, message, self) => {
-                    const log = document.getElementById('log');
-                    const name = tags['display-name'] || tags.username;
-                    log.innerHTML += `<div style="margin-bottom:5px;"><strong>${name}:</strong> ${message}</div>`;
-                    log.scrollTop = log.scrollHeight;
+            client.on('message', (channel, tags, message, self) => {
+                const log = document.getElementById('log');
+                log.innerHTML += `<p><strong>${tags['display-name'] || tags.username}:</strong> ${message}</p>`;
+                log.scrollTop = log.scrollHeight;
 
-                    // 音声読み上げ
-                    const uttr = new SpeechSynthesisUtterance(message);
-                    uttr.lang = 'ja-JP';
-                    window.speechSynthesis.speak(uttr);
-                });
-            }
-        })();
+                const uttr = new SpeechSynthesisUtterance(message);
+                uttr.lang = 'ja-JP';
+                window.speechSynthesis.speak(uttr);
+            });
+        }
+
+        // 1秒後に起動
+        setTimeout(start, 1000);
     </script>
 </body>
 </html>
