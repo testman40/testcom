@@ -3,30 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitch Reader</title>
+    <title>Twitch Reader Fixed</title>
+    <script src="https://cdn.jsdelivr.net/bundle/npm/tmi.js@1.8.5"></script>
 </head>
 <body>
-    <h1 style="font-size: 20px;">Twitch 読み上げくん</h1>
-    <p>現在の状態: <span id="status" style="font-weight:bold; color:red;">準備中...</span></p>
-    <div id="log" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll; font-size:14px;"></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
+    <h1 style="font-size: 18px;">Twitch 読み上げ（完全版）</h1>
+    <p>現在の状態: <span id="status" style="font-weight:bold; color:red;">起動中...</span></p>
+    <div id="log" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll; background:#fff;"></div>
 
     <script>
-        // 5秒待ってから確実に起動させる関数
-        function connectTwitch() {
+        // 起動処理
+        function init() {
             const statusEl = document.getElementById('status');
             
+            // tmiが読み込めているかチェック
             if (typeof tmi === 'undefined') {
-                statusEl.innerText = '道具の読み込みを待っています...（5秒後に再試行）';
-                setTimeout(connectTwitch, 5000); // 5秒後に再チャレ
+                statusEl.innerText = '通信パーツが見つかりません。ページを再読み込みしてください。';
                 return;
             }
 
-            const targetChannel = 'tachinsan'; 
             const client = new tmi.Client({
                 connection: { reconnect: true, secure: true },
-                channels: [ targetChannel ]
+                channels: ['tachinsan'] // IDを固定しました
             });
 
             client.connect().then(() => {
@@ -47,8 +45,8 @@
             });
         }
 
-        // ページが開いてから1秒後に起動
-        setTimeout(connectTwitch, 1000);
+        // ページ読み込みから1秒後に実行
+        setTimeout(init, 1000);
     </script>
 </body>
 </html>
