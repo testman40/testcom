@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Twitch Read</title>
+</head>
+<body>
+    <h1>Twitch 読み上げ中</h1>
+    <p>ステータス: <span id="status">接続中...</span></p>
+    <div id="log" style="border:1px solid #ccc; padding:10px; height:200px; overflow-y:scroll;"></div>
+
+    <script src="https://tmijs.com/releases/1.8.5/tmi.min.js"></script>
+    <script>
+        // チャンネル名は大文字・小文字を区別するので正確に
+        const myChannel = 'tachinsan'; 
+
+        const client = new tmi.Client({
+            connection: { reconnect: true, secure: true },
+            channels: [ myChannel ]
+        });
+
+        client.connect().catch(err => {
+            document.getElementById('status').innerText = '接続失敗: ' + err;
+        });
+
+        client.on('connected', () => {
+            document.getElementById('status').innerText = '接続成功！チャット待機中...';
+        });
+
+        client.on('message', (channel, tags, message, self) => {
+            const log = document.getElementById('log');
+            log.innerHTML += `<p><strong>${tags['display-name']}:</strong> ${message}</p>`;
+            log.scrollTop = log.scrollHeight;
+
+            const uttr = new SpeechSynthesisUtterance(message);
+            uttr.lang = 'ja-JP';
+            window.speechSynthesis.speak(uttr);
+        });
+    </script>
+</body>
+</html>
