@@ -2,19 +2,24 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Twitch Reader</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tmi.js/1.8.5/tmi.min.js"></script>
 </head>
 <body>
-    <h1>Twitch 読み上げくん</h1>
-    <p>現在の状態: <span id="status" style="font-weight:bold; color:red;">接続待機中...</span></p>
-    <div id="log" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll;"></div>
+    <h1 style="font-size: 20px;">Twitch 読み上げくん</h1>
+    <p>現在の状態: <span id="status" style="font-weight:bold; color:red;">準備中...</span></p>
+    <div id="log" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll; font-size:14px;"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
 
     <script>
-        // 道具が読み込まれるのを待ってから開始する
-        function startApp() {
+        // 5秒待ってから確実に起動させる関数
+        function connectTwitch() {
+            const statusEl = document.getElementById('status');
+            
             if (typeof tmi === 'undefined') {
-                document.getElementById('status').innerText = 'エラー：通信ライブラリが読み込めませんでした。再読み込みしてください。';
+                statusEl.innerText = '道具の読み込みを待っています...（5秒後に再試行）';
+                setTimeout(connectTwitch, 5000); // 5秒後に再チャレ
                 return;
             }
 
@@ -25,10 +30,10 @@
             });
 
             client.connect().then(() => {
-                document.getElementById('status').innerText = '接続成功！ (tachinsan 待機中)';
-                document.getElementById('status').style.color = 'green';
+                statusEl.innerText = '接続成功！ (tachinsan 待機中)';
+                statusEl.style.color = 'green';
             }).catch(err => {
-                document.getElementById('status').innerText = '接続失敗: ' + err;
+                statusEl.innerText = '接続失敗: ' + err;
             });
 
             client.on('message', (channel, tags, message, self) => {
@@ -42,8 +47,8 @@
             });
         }
 
-        // ページ読み込み完了時に実行
-        window.onload = startApp;
+        // ページが開いてから1秒後に起動
+        setTimeout(connectTwitch, 1000);
     </script>
 </body>
 </html>
