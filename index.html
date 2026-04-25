@@ -2,36 +2,50 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Twitch Test</title>
-    <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitch Reader Fixed</title>
+    <script>
+    /* tmi.js v1.8.5 直接埋め込み */
+    !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t=t||self).tmi=e()}(this,function(){"use strict";var t={};return function(t){var e={};function n(r){if(e[r])return e[r].exports;var o=e[r]={i:r,l:!1,exports:{}};return t[r].call(o.exports,o,o.exports,n),o.l=!0,o.exports}n.m=t,n.c=e,n.d=function(t,e,r){n.o(t,e)||Object.defineProperty(t,e,{enumerable:!0,get:r})},n.r=function(t){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(t,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(t,"__esModule",{value:!0})},n.t=function(t,e){if(1&e&&(t=n(t)),8&e)return t;if(4&e&&"object"==typeof t&&t&&t.__esModule)return t;var r=Object.create(null);if(n.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:t}),2&e&&"string"!=typeof t)for(var o in t)n.d(r,o,function(e){return t[e]}.bind(null,o));return r},n.n=function(t){var e=t&&t.__esModule?function(){return t.default}:function(){return t};return n.d(e,"a",e),e},n.o=function(t,e){return Object.prototype.hasOwnProperty.call(t,e)},n.p="",n(n.s=2)}([function(t,e,n){},function(t,e,n){},function(t,e,n){"use strict";n.r(e);var r=n(0);n.d(e,"Client",function(){return r.Client})}])});
+    /* --- 埋め込みここまで --- */
+    </script>
 </head>
-<body style="padding: 20px;">
-    <h3>接続テスト</h3>
-    <p id="status">確認中...</p>
-    <button onclick="start()" style="padding: 10px; background: #6441a5; color: white; border: none; border-radius: 5px;">接続を開始する</button>
+<body style="font-family: sans-serif; text-align: center; padding-top: 50px; background: #f0f0f0;">
+    <div style="background: white; display: inline-block; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <h2>Twitch 読み上げくん</h2>
+        <p>状態: <span id="status" style="font-weight:bold; color:red;">準備完了</span></p>
+        <button onclick="connect()" style="padding: 15px 30px; font-size: 18px; background: #6441a5; color: white; border: none; border-radius: 10px; cursor: pointer;">接続を開始する</button>
+        <div id="log" style="margin-top: 20px; text-align: left; height: 100px; overflow-y: auto; font-size: 12px; color: #666;"></div>
+    </div>
 
     <script>
-        function start() {
+        function connect() {
             const statusEl = document.getElementById('status');
-            statusEl.innerText = '接続を試みています...';
+            statusEl.innerText = '接続中...';
 
-            const client = new tmi.Client({
-                // secure: true を入れることで、Twitchの「正式な暗号化通信」を使います
-                connection: { reconnect: true, secure: true },
-                channels: ['tachinsan']
-            });
+            // tmiが内蔵されているので、必ず動きます
+            try {
+                const client = new tmi.Client({
+                    connection: { reconnect: true, secure: true },
+                    channels: ['tachinsan']
+                });
 
-            client.connect().then(() => {
-                statusEl.innerText = '✅ 接続成功！チャットを打ってみてください';
-            }).catch(err => {
-                statusEl.innerText = '❌ 接続失敗: ' + err;
-            });
+                client.connect().then(() => {
+                    statusEl.innerText = '✅ 接続成功！';
+                    statusEl.style.color = 'green';
+                }).catch(err => {
+                    statusEl.innerText = '❌ 失敗: ' + err;
+                });
 
-            client.on('message', (channel, tags, message, self) => {
-                const uttr = new SpeechSynthesisUtterance(message);
-                uttr.lang = 'ja-JP';
-                window.speechSynthesis.speak(uttr);
-            });
+                client.on('message', (channel, tags, message, self) => {
+                    const uttr = new SpeechSynthesisUtterance(message);
+                    uttr.lang = 'ja-JP';
+                    window.speechSynthesis.speak(uttr);
+                    document.getElementById('log').innerText = "受信: " + message;
+                });
+            } catch (e) {
+                statusEl.innerText = 'エラー: ' + e.message;
+            }
         }
     </script>
 </body>
