@@ -1,41 +1,46 @@
-﻿<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Twitch Read</title>
+    <title>Twitch Reader</title>
+    <script src="https://unpkg.com/tmi.js@1.8.5/projects/tmijs/dist/tmi.min.js"></script>
 </head>
 <body>
-    <h1>Twitch 読み上げ中</h1>
-    <p>ステータス: <span id="status">接続中...</span></p>
-    <div id="log" style="border:1px solid #ccc; padding:10px; height:200px; overflow-y:scroll;"></div>
+    <h1>Twitch 読み上げくん</h1>
+    <p>現在の状態: <span id="status" style="font-weight:bold; color:red;">準備中...</span></p>
+    <div id="log" style="border:1px solid #ccc; padding:10px; height:300px; overflow-y:scroll; background:#f9f9f9;"></div>
 
-    <script src="https://tmijs.com/releases/1.8.5/tmi.min.js"></script>
     <script>
-        // チャンネル名は大文字・小文字を区別するので正確に
-        const myChannel = 'tachinsan'; 
+        // ページが完全に読み込まれてから実行する
+        window.onload = function() {
+            const targetChannel = 'tachinsan'; 
 
-        const client = new tmi.Client({
-            connection: { reconnect: true, secure: true },
-            channels: [ myChannel ]
-        });
+            try {
+                const client = new tmi.Client({
+                    connection: { reconnect: true, secure: true },
+                    channels: [ targetChannel ]
+                });
 
-        client.connect().catch(err => {
-            document.getElementById('status').innerText = '接続失敗: ' + err;
-        });
+                client.connect().then(() => {
+                    document.getElementById('status').innerText = '接続成功！ (tachinsan 待機中)';
+                    document.getElementById('status').style.color = 'green';
+                }).catch(err => {
+                    document.getElementById('status').innerText = '接続失敗: ' + err;
+                });
 
-        client.on('connected', () => {
-            document.getElementById('status').innerText = '接続成功！チャット待機中...';
-        });
+                client.on('message', (channel, tags, message, self) => {
+                    const log = document.getElementById('log');
+                    log.innerHTML += `<p><strong>${tags['display-name'] || tags.username}:</strong> ${message}</p>`;
+                    log.scrollTop = log.scrollHeight;
 
-        client.on('message', (channel, tags, message, self) => {
-            const log = document.getElementById('log');
-            log.innerHTML += `<p><strong>${tags['display-name']}:</strong> ${message}</p>`;
-            log.scrollTop = log.scrollHeight;
-
-            const uttr = new SpeechSynthesisUtterance(message);
-            uttr.lang = 'ja-JP';
-            window.speechSynthesis.speak(uttr);
-        });
+                    const uttr = new SpeechSynthesisUtterance(message);
+                    uttr.lang = 'ja-JP';
+                    window.speechSynthesis.speak(uttr);
+                });
+            } catch (e) {
+                document.getElementById('status').innerText = 'エラー発生: ' + e.message;
+            }
+        };
     </script>
 </body>
 </html>
