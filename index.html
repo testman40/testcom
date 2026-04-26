@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitch Reader (Manual Fetch)</title>
+    <title>Twitch Reader (Fixed Ver.)</title>
     <script src="https://bundle.run/tmi.js@1.8.5"></script>
 </head>
 <body style="font-family: sans-serif; background-color: #f0f2f5; padding: 20px; text-align: center;">
@@ -27,13 +27,29 @@
         const CHANNEL_NAME = 'tachinsan'; 
         const readingDict = { "w": "わら", "ｗ": "わら", "草": "わら", "初見": "しょけんさんいらっしゃい", "おつ": "おつかれさま" };
 
+        // 起動時に保存されたログを読み込む（エラー対策強化）
         window.onload = () => {
-            const savedLog = JSON.parse(localStorage.getItem('twitch_logs') || '[]');
-            savedLog.forEach(item => displayLog(item.time, item.user, item.msg, false));
+            try {
+                const savedData = localStorage.getItem('twitch_logs');
+                if (savedData) {
+                    const savedLog = JSON.parse(savedData);
+                    if (Array.isArray(savedLog)) {
+                        savedLog.forEach(item => {
+                            if(item.time && item.user && item.msg) {
+                                displayLog(item.time, item.user, item.msg, false);
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Storage Error:", e);
+                localStorage.removeItem('twitch_logs'); // 壊れたデータは消去
+            }
         };
 
         function displayLog(time, user, msg, isNew) {
             const log = document.getElementById('log');
+            if (!log) return;
             const newMsg = document.createElement('div');
             newMsg.style.borderBottom = "1px solid #f0f0f0";
             newMsg.style.padding = "8px 0";
@@ -41,33 +57,46 @@
             log.prepend(newMsg);
 
             if (isNew) {
-                let logs = JSON.parse(localStorage.getItem('twitch_logs') || '[]');
-                logs.push({ time, user, msg });
-                if (logs.length > 100) logs.shift();
-                localStorage.setItem('twitch_logs', JSON.stringify(logs));
+                try {
+                    let logs = JSON.parse(localStorage.getItem('twitch_logs') || '[]');
+                    logs.push({ time, user, msg });
+                    if (logs.length > 100) logs.shift();
+                    localStorage.setItem('twitch_logs', JSON.stringify(logs));
+                } catch (e) { console.error(e); }
             }
         }
 
-        // 手動で最新を取得し直す機能
         function fetchLatest() {
-            isManualFetching = true;
-            if (client) {
-                client.disconnect();
+            if (!client) {
+                alert("先に『接続開始』を押してください");
+                return;
             }
-            connectToTwitch();
-            setTimeout(() => { isManualFetching = false; }, 3000); // 3秒間だけ「手動取得モード」にする
+            isManualFetching = true;
+            disconnectFromTwitch();
+            setTimeout(connectToTwitch, 500); // 0.5秒後に再接続
+            setTimeout(() => { isManualFetching = false; }, 4000);
         }
 
         function connectToTwitch() {
             const statusEl = document.getElementById('status');
             statusEl.innerText = '接続中...';
-            client = new tmi.Client({ channels: [CHANNEL_NAME] });
+            
+            // 既存の接続があれば破棄
+            if (client) { client.disconnect(); }
+
+            client = new tmi.Client({ 
+                connection: { reconnect: true, secure: true },
+                channels: [CHANNEL_NAME] 
+            });
 
             client.connect().then(() => {
                 statusEl.innerText = '✅ 接続中';
                 statusEl.style.color = 'green';
                 document.getElementById('btn-start').style.display = 'none';
                 document.getElementById('btn-stop').style.display = 'inline-block';
+            }).catch(err => {
+                console.error(err);
+                statusEl.innerText = '❌ 接続失敗';
             });
 
             client.onmessage = (user, message) => {
@@ -75,14 +104,12 @@
                 const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
                 displayLog(timeStr, user, message, true);
 
-                // 読み上げ処理
                 let speechMessage = message;
                 for (let key in readingDict) {
                     speechMessage = speechMessage.replace(new RegExp(key, 'g'), readingDict[key]);
                 }
 
                 if (isManualFetching) {
-                    // 手動取得時は「最新の1件」のみ即座に読み上げ、溜まっている分はキャンセル
                     window.speechSynthesis.cancel();
                 }
 
