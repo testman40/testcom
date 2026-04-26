@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitch Reader (High Speed)</title>
+    <title>Twitch Reader (Timer & BG)</title>
     <script>
     /* tmi.js v1.8.5 直接埋め込み */
     (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.tmi=f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){"use strict";var client=require("./client");module.exports={client:client,Client:client};},{"./client":2}],2:[function(require,module,exports){"use strict";function Client(opts){this.opts=opts||{};this.channels=this.opts.channels||[];this.ws=null}Client.prototype.connect=function(){var self=this;return new Promise(function(resolve,reject){self.ws=new WebSocket("wss://irc-ws.chat.twitch.tv:443");self.ws.onopen=function(){self.ws.send("CAP REQ :twitch.tv/tags twitch.tv/commands");self.ws.send("NICK justinfan123");self.channels.forEach(function(chan){self.ws.send("JOIN #"+chan.replace("#",""))});resolve()};self.ws.onmessage=function(event){var msg=event.data;if(msg.indexOf("PING")===0){self.ws.send("PONG :tmi.twitch.tv")}else if(msg.indexOf("PRIVMSG")!==-1){const match=msg.match(/display-name=([^;]+).*PRIVMSG #[^ ]+ :(.+)/);if(match&&self.onmessage){self.onmessage(match[1],match[2])}}};self.ws.onerror=function(err){reject(err)}})};Client.prototype.disconnect=function(){if(this.ws){this.ws.close();this.ws=null}};module.exports=Client},{}],3:[function(require,module,exports){"use strict";var tmi=require("./index");module.exports=tmi},{"./index":1}]},{},[3])(3)});
@@ -39,26 +39,29 @@
             });
 
             client.onmessage = function(user, message) {
+                // 時刻の取得
+                const now = new Date();
+                const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
                 let speechMessage = message;
                 for (let key in readingDict) {
                     const regex = new RegExp(key, 'g');
                     speechMessage = speechMessage.replace(regex, readingDict[key]);
                 }
 
-                // 画面ログ表示
+                // 画面ログ表示（時刻を追加）
                 const log = document.getElementById('log');
                 const newMsg = document.createElement('div');
                 newMsg.style.borderBottom = "1px solid #f0f0f0";
                 newMsg.style.padding = "8px 0";
-                newMsg.innerHTML = `<span style="color:#6441a5; font-weight:bold;">${user}</span> ＠ ${message}`;
+                newMsg.innerHTML = `<small style="color:gray;">[${timeStr}]</small> <span style="color:#6441a5; font-weight:bold;">${user}</span>: ${message}`;
                 log.prepend(newMsg);
 
-                // ラグ対策：溜まっている読み上げを一度クリアしてから最新を読む
+                // 読み上げ処理
                 window.speechSynthesis.cancel(); 
-
                 const uttr = new SpeechSynthesisUtterance(`${user} ＠ ${speechMessage}`);
                 uttr.lang = 'ja-JP';
-                uttr.rate = 1.3; // 速度を上げて追いつきやすく
+                uttr.rate = 1.3;
                 window.speechSynthesis.speak(uttr);
             };
         }
